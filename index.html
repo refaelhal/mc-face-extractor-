@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>face grab</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+background: #0e0e0e;
+color: #e8e8e8;
+font-family: ‘IBM Plex Mono’, monospace;
+font-weight: 400;
+min-height: 100vh;
+display: flex;
+align-items: center;
+justify-content: center;
+padding: 24px;
+}
+
+.wrap {
+width: 100%;
+max-width: 300px;
+display: flex;
+flex-direction: column;
+gap: 28px;
+}
+
+.label {
+font-size: 10px;
+font-weight: 500;
+letter-spacing: 0.12em;
+color: #888;
+text-transform: uppercase;
+margin-bottom: 8px;
+}
+
+.row { display: flex; gap: 8px; }
+
+input[type=“text”] {
+flex: 1;
+background: #1a1a1a;
+border: 1px solid #333;
+border-radius: 6px;
+color: #f0f0f0;
+font-family: inherit;
+font-size: 16px;
+font-weight: 400;
+padding: 9px 12px;
+outline: none;
+transition: border-color 0.15s;
+-webkit-appearance: none;
+}
+input[type=“text”]::placeholder { color: #444; }
+input[type=“text”]:focus { border-color: #555; }
+
+button.go {
+background: #f0f0f0;
+border: none;
+border-radius: 6px;
+color: #111;
+cursor: pointer;
+font-family: inherit;
+font-size: 13px;
+font-weight: 500;
+padding: 9px 16px;
+transition: background 0.15s;
+touch-action: manipulation;
+}
+button.go:hover { background: #fff; }
+button.go:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.or {
+display: flex;
+align-items: center;
+gap: 10px;
+font-size: 11px;
+color: #444;
+letter-spacing: 0.08em;
+}
+.or::before, .or::after { content: ‘’; flex: 1; height: 1px; background: #222; }
+
+.upload {
+border: 1px dashed #333;
+border-radius: 6px;
+cursor: pointer;
+padding: 18px;
+text-align: center;
+transition: all 0.15s;
+}
+.upload:hover, .upload.over { border-color: #555; background: #141414; }
+.upload.ready { border-color: #4a7a30; border-style: solid; }
+
+.upload-hint {
+font-size: 11px;
+color: #666;
+line-height: 1.7;
+transition: color 0.15s;
+word-break: break-all;
+}
+.upload.ready .upload-hint { color: #6aaa40; }
+
+button.extract {
+margin-top: 8px;
+width: 100%;
+background: #1a1a1a;
+border: 1px solid #333;
+border-radius: 6px;
+color: #bbb;
+cursor: pointer;
+font-family: inherit;
+font-size: 13px;
+font-weight: 400;
+padding: 9px;
+transition: all 0.15s;
+touch-action: manipulation;
+}
+button.extract:not(:disabled):hover { border-color: #555; color: #eee; background: #222; }
+button.extract:disabled { opacity: 0.25; cursor: not-allowed; }
+
+.sizes {
+display: flex;
+gap: 6px;
+}
+.sizes button {
+flex: 1;
+background: #1a1a1a;
+border: 1px solid #333;
+border-radius: 6px;
+color: #555;
+cursor: pointer;
+font-family: inherit;
+font-size: 11px;
+font-weight: 400;
+padding: 7px 4px;
+transition: all 0.15s;
+touch-action: manipulation;
+}
+.sizes button:hover { border-color: #555; color: #ccc; }
+.sizes button.active { border-color: #f0f0f0; color: #f0f0f0; background: #222; }
+
+.status {
+font-size: 11px;
+color: #555;
+min-height: 16px;
+text-align: center;
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 8px;
+}
+.status.err { color: #c05050; }
+
+.spinner {
+display: none;
+width: 12px;
+height: 12px;
+border: 1.5px solid #333;
+border-top-color: #888;
+border-radius: 50%;
+animation: spin 0.6s linear infinite;
+flex-shrink: 0;
+}
+.status.loading .spinner { display: block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.privacy {
+font-size: 10px;
+color: #3a3a3a;
+text-align: center;
+line-height: 1.6;
+}
+
+.result {
+display: none;
+flex-direction: column;
+align-items: center;
+gap: 14px;
+}
+.result.show {
+display: flex;
+animation: up 0.18s ease;
+}
+@keyframes up {
+from { opacity: 0; transform: translateY(5px); }
+to   { opacity: 1; transform: translateY(0); }
+}
+
+canvas {
+image-rendering: pixelated;
+image-rendering: crisp-edges;
+width: 128px;
+height: 128px;
+display: block;
+border-radius: 3px;
+}
+
+.pname {
+font-size: 11px;
+color: #666;
+letter-spacing: 0.06em;
+}
+
+a.dl {
+display: inline-flex;
+align-items: center;
+gap: 7px;
+background: #f0f0f0;
+border: none;
+border-radius: 6px;
+color: #111;
+font-family: inherit;
+font-size: 12px;
+font-weight: 500;
+padding: 9px 18px;
+text-decoration: none;
+transition: background 0.15s;
+touch-action: manipulation;
+}
+a.dl:hover { background: #fff; }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+
+  <div>
+    <div class="label">Username</div>
+    <div class="row">
+      <input type="text" id="uname" placeholder="Steve" maxlength="16" autocomplete="off" spellcheck="false">
+      <button class="go" id="fetchBtn" onclick="fetchFace()">Grab</button>
+    </div>
+  </div>
+
+  <div class="or">or</div>
+
+  <div>
+    <div class="label">Skin file</div>
+    <div class="upload" id="uploadZone" onclick="document.getElementById('fileIn').click()">
+      <input type="file" id="fileIn" accept="image/png" style="display:none">
+      <div class="upload-hint" id="uploadHint">drop .png skin here<br>or click to browse</div>
+    </div>
+    <button class="extract" id="extractBtn" onclick="extractUpload()" disabled>Extract face</button>
+  </div>
+
+  <div>
+    <div class="label">Output size</div>
+    <div class="sizes">
+      <button onclick="setSize(64)"  id="sz64">64&times;64</button>
+      <button onclick="setSize(128)" id="sz128">128&times;128</button>
+      <button onclick="setSize(256)" id="sz256" class="active">256&times;256</button>
+    </div>
+  </div>
+
+  <div class="status" id="status"><div class="spinner"></div><span id="statusText"></span></div>
+
+  <div class="privacy">
+    Username lookups route through allorigins.win and Crafatar.<br>Your username may be logged by those services.
+  </div>
+
+  <div class="result" id="result">
+    <canvas id="canvas" width="256" height="256"></canvas>
+    <div class="pname" id="pname"></div>
+    <a class="dl" id="dlBtn" href="#" download="face.png">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+        <path d="M6 1v7M3 5.5l3 3 3-3M1.5 10.5h9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span id="dlLabel">Download 256&times;256</span>
+    </a>
+  </div>
+
+</div>
+<script>
+var uploadedFile = null;
+var outputSize = 256;
+var lastMode = null;
+var lastBitmap = null;
+var lastFaceData = null;
+var lastHatData = null;
+var lastName = null;
+
+function setSize(s) {
+outputSize = s;
+[64, 128, 256].forEach(function(n) {
+document.getElementById(‘sz’ + n).classList.toggle(‘active’, n === s);
+});
+document.getElementById(‘dlLabel’).textContent = ’Download ’ + s + ‘\xd7’ + s;
+if (document.getElementById(‘result’).classList.contains(‘show’)) {
+rerenderAtSize();
+}
+}
+
+function rerenderAtSize() {
+if (lastMode === ‘fetch’ && lastBitmap) {
+var c = renderBitmapToCanvas(lastBitmap);
+updateDownload(c, lastName);
+} else if (lastMode === ‘upload’ && lastFaceData) {
+var c = renderFaceToCanvas(lastFaceData, lastHatData);
+updateDownload(c, lastName);
+}
+}
+
+function renderBitmapToCanvas(bmp) {
+var c = document.getElementById(‘canvas’);
+c.width = outputSize; c.height = outputSize;
+var ctx = c.getContext(‘2d’);
+ctx.imageSmoothingEnabled = false;
+ctx.globalCompositeOperation = ‘source-over’;
+ctx.drawImage(bmp, 0, 0, outputSize, outputSize);
+return c;
+}
+
+function renderFaceToCanvas(faceData, hatData) {
+var s = outputSize;
+var c = document.getElementById(‘canvas’);
+c.width = s; c.height = s;
+var ctx = c.getContext(‘2d’);
+ctx.imageSmoothingEnabled = false;
+ctx.globalCompositeOperation = ‘source-over’;
+
+var fs = document.createElement(‘canvas’);
+fs.width = 8; fs.height = 8;
+fs.getContext(‘2d’).putImageData(faceData, 0, 0);
+ctx.drawImage(fs, 0, 0, s, s);
+
+var hasHat = faceData && hatData.data.some(function(v, i) { return i % 4 === 3 && v > 0; });
+if (hasHat) {
+ctx.globalCompositeOperation = ‘source-over’;
+var hs = document.createElement(‘canvas’);
+hs.width = 8; hs.height = 8;
+hs.getContext(‘2d’).putImageData(hatData, 0, 0);
+ctx.drawImage(hs, 0, 0, s, s);
+}
+return c;
+}
+
+function updateDownload(c, name) {
+var dl = document.getElementById(‘dlBtn’);
+dl.href = c.toDataURL(‘image/png’);
+dl.download = name + ‘*face*’ + outputSize + ‘x’ + outputSize + ‘.png’;
+}
+
+function showResult(c, name) {
+updateDownload(c, name);
+document.getElementById(‘pname’).textContent = name;
+document.getElementById(‘result’).className = ‘result show’;
+}
+
+var zone = document.getElementById(‘uploadZone’);
+zone.addEventListener(‘dragover’, function(e) { e.preventDefault(); zone.classList.add(‘over’); });
+zone.addEventListener(‘dragleave’, function() { zone.classList.remove(‘over’); });
+zone.addEventListener(‘drop’, function(e) {
+e.preventDefault(); zone.classList.remove(‘over’);
+var f = e.dataTransfer.files[0];
+if (f && f.type === ‘image/png’) setFile(f);
+});
+document.getElementById(‘fileIn’).addEventListener(‘change’, function(e) {
+if (e.target.files[0]) setFile(e.target.files[0]);
+});
+
+function setFile(f) {
+uploadedFile = f;
+zone.classList.add(‘ready’);
+document.getElementById(‘uploadHint’).textContent = f.name;
+document.getElementById(‘extractBtn’).disabled = false;
+}
+
+document.getElementById(‘uname’).addEventListener(‘keydown’, function(e) {
+if (e.key === ‘Enter’) fetchFace();
+});
+
+function setStatus(msg, isErr, isLoading) {
+var el = document.getElementById(‘status’);
+document.getElementById(‘statusText’).textContent = msg;
+el.className = ‘status’ + (isErr ? ’ err’ : ‘’) + (isLoading ? ’ loading’ : ‘’);
+}
+
+async function fetchFace() {
+var username = document.getElementById(‘uname’).value.trim();
+if (!username) return;
+var btn = document.getElementById(‘fetchBtn’);
+btn.disabled = true;
+setStatus(‘looking up\u2026’, false, true);
+document.getElementById(‘result’).className = ‘result’;
+try {
+var mojangUrl = ‘https://api.mojang.com/users/profiles/minecraft/’ + encodeURIComponent(username);
+var r = await fetch(‘https://api.allorigins.win/get?url=’ + encodeURIComponent(mojangUrl));
+if (!r.ok) throw new Error(‘proxy unreachable (allorigins.win)’);
+var j = await r.json();
+if (!j.contents || j.contents === ‘null’ || j.contents === ‘’) throw new Error(‘player not found’);
+var profile = JSON.parse(j.contents);
+if (!profile || !profile.id) throw new Error(‘player not found’);
+
+```
+setStatus('fetching skin\u2026', false, true);
+var avatarUrl = 'https://crafatar.com/avatars/' + profile.id + '?size=64&overlay=true';
+var imgRes = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(avatarUrl));
+if (!imgRes.ok) throw new Error('could not load skin from Crafatar');
+var bmp = await createImageBitmap(await imgRes.blob());
+
+lastMode = 'fetch'; lastBitmap = bmp; lastName = profile.name;
+var c = renderBitmapToCanvas(bmp);
+setStatus('', false, false);
+showResult(c, profile.name);
+```
+
+} catch(err) {
+setStatus(err.message, true, false);
+}
+btn.disabled = false;
+}
+
+async function extractUpload() {
+if (!uploadedFile) return;
+var btn = document.getElementById(‘extractBtn’);
+btn.disabled = true;
+setStatus(‘reading\u2026’, false, true);
+document.getElementById(‘result’).className = ‘result’;
+try {
+var bmp = await createImageBitmap(uploadedFile);
+var w = bmp.width, h = bmp.height;
+if (w !== 64 || (h !== 64 && h !== 32)) throw new Error(’invalid size ’ + w + ‘\xd7’ + h);
+
+```
+var tmp = document.createElement('canvas');
+tmp.width = w; tmp.height = h;
+var tctx = tmp.getContext('2d');
+tctx.imageSmoothingEnabled = false;
+tctx.drawImage(bmp, 0, 0);
+
+var faceData = tctx.getImageData(8, 8, 8, 8);
+var hatData  = tctx.getImageData(40, 8, 8, 8);
+
+lastMode = 'upload'; lastFaceData = faceData; lastHatData = hatData;
+lastName = uploadedFile.name.replace(/\.png$/i, '');
+
+var c = renderFaceToCanvas(faceData, hatData);
+setStatus('', false, false);
+showResult(c, lastName);
+```
+
+} catch(err) {
+setStatus(err.message, true, false);
+}
+btn.disabled = false;
+}
+</script>
+
+</body>
+</html>
