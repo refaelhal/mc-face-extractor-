@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>face grab</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗿</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -256,7 +257,7 @@
   <div class="status" id="status"><div class="spinner"></div><span id="statusText"></span></div>
 
   <div class="privacy">
-    Username lookups route through allorigins.win and Crafatar.<br>Your username may be logged by those services.
+    Username lookups route through corsproxy.io and Crafatar.<br>Your username may be logged by those services.
   </div>
 
   <div class="result" id="result">
@@ -385,17 +386,17 @@ async function fetchFace() {
   document.getElementById('result').className = 'result';
   try {
     var mojangUrl = 'https://api.mojang.com/users/profiles/minecraft/' + encodeURIComponent(username);
-    var r = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent(mojangUrl));
-    if (!r.ok) throw new Error('proxy unreachable (allorigins.win)');
-    var j = await r.json();
-    if (!j.contents || j.contents === 'null' || j.contents === '') throw new Error('player not found');
-    var profile = JSON.parse(j.contents);
+    var r = await fetch('https://corsproxy.io/?' + encodeURIComponent(mojangUrl));
+    if (!r.ok) throw new Error('player not found or API unavailable');
+    
+    var profile = await r.json();
     if (!profile || !profile.id) throw new Error('player not found');
 
     setStatus('fetching skin\u2026', false, true);
     var avatarUrl = 'https://crafatar.com/avatars/' + profile.id + '?size=64&overlay=true';
-    var imgRes = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(avatarUrl));
+    var imgRes = await fetch(avatarUrl);
     if (!imgRes.ok) throw new Error('could not load skin from Crafatar');
+    
     var bmp = await createImageBitmap(await imgRes.blob());
 
     lastMode = 'fetch'; lastBitmap = bmp; lastName = profile.name;
