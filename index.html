@@ -257,7 +257,7 @@
   <div class="status" id="status"><div class="spinner"></div><span id="statusText"></span></div>
 
   <div class="privacy">
-    Username lookups route through corsproxy.io and Crafatar.<br>Your username may be logged by those services.
+    Username lookups route through Crafatar/Crafthead.<br>Your username may be logged by those services.
   </div>
 
   <div class="result" id="result">
@@ -382,27 +382,34 @@ async function fetchFace() {
   if (!username) return;
   var btn = document.getElementById('fetchBtn');
   btn.disabled = true;
-  setStatus('looking up\u2026', false, true);
+  setStatus('looking up player…', false, true);
   document.getElementById('result').className = 'result';
+
   try {
-    var mojangUrl = 'https://api.mojang.com/users/profiles/minecraft/' + encodeURIComponent(username);
-    var r = await fetch('https://corsproxy.io/?' + encodeURIComponent(mojangUrl));
-    if (!r.ok) throw new Error('player not found or API unavailable');
-    
-    var profile = await r.json();
-    if (!profile || !profile.id) throw new Error('player not found');
-
-    setStatus('fetching skin\u2026', false, true);
-    var avatarUrl = 'https://crafatar.com/avatars/' + profile.id + '?size=64&overlay=true';
+    var avatarUrl = 'https://crafthead.net/helm/' + encodeURIComponent(username) + '/64';
     var imgRes = await fetch(avatarUrl);
-    if (!imgRes.ok) throw new Error('could not load skin from Crafatar');
     
-    var bmp = await createImageBitmap(await imgRes.blob());
+    if (!imgRes.ok) {
+      avatarUrl = 'https://api.ashcon.app/mojang/v2/user/' + encodeURIComponent(username);
+      var userRes = await fetch(avatarUrl);
+      if (!userRes.ok) throw new Error('player not found');
+      var userData = await userRes.json();
+      avatarUrl = 'https://crafatar.com/avatars/' + userData.uuid + '?size=64&overlay=true';
+      imgRes = await fetch(avatarUrl);
+    }
 
-    lastMode = 'fetch'; lastBitmap = bmp; lastName = profile.name;
+    if (!imgRes.ok) throw new Error('could not load player avatar');
+
+    var blob = await imgRes.blob();
+    var bmp = await createImageBitmap(blob);
+
+    lastMode = 'fetch'; 
+    lastBitmap = bmp; 
+    lastName = username;
+
     var c = renderBitmapToCanvas(bmp);
     setStatus('', false, false);
-    showResult(c, profile.name);
+    showResult(c, username);
   } catch(err) {
     setStatus(err.message, true, false);
   }
@@ -413,7 +420,7 @@ async function extractUpload() {
   if (!uploadedFile) return;
   var btn = document.getElementById('extractBtn');
   btn.disabled = true;
-  setStatus('reading\u2026', false, true);
+  setStatus('reading…', false, true);
   document.getElementById('result').className = 'result';
   try {
     var bmp = await createImageBitmap(uploadedFile);
