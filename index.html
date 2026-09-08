@@ -324,7 +324,7 @@ function renderFaceToCanvas(faceData, hatData) {
   fs.getContext('2d').putImageData(faceData, 0, 0);
   ctx.drawImage(fs, 0, 0, s, s);
 
-  var hasHat = faceData && hatData.data.some(function(v, i) { return i % 4 === 3 && v > 0; });
+  var hasHat = hatData && hatData.data.some(function(v, i) { return i % 4 === 3 && v > 0; });
   if (hasHat) {
     ctx.globalCompositeOperation = 'source-over';
     var hs = document.createElement('canvas');
